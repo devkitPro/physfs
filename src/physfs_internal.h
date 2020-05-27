@@ -107,6 +107,10 @@ const void *__PHYSFS_winrtCalcBaseDir(void);
 const void *__PHYSFS_winrtCalcPrefDir(void);
 #endif
 
+#ifdef PHYSFS_PLATFORM_SWITCH
+char *__PHYSFS_switchCalcUserDir(void);
+#endif
+
 /* atomic operations. */
 #if defined(_MSC_VER) && (_MSC_VER >= 1500)
 #include <intrin.h>
