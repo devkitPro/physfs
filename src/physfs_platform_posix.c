@@ -64,6 +64,9 @@ static inline PHYSFS_ErrorCode errcodeFromErrno(void)
 
 static char *getUserDirByUID(void)
 {
+#ifdef PHYSFS_PLATFORM_3DS
+    return __PHYSFS_3DSCalcUserDir();
+#else
     uid_t uid = getuid();
     struct passwd *pw;
     char *retval = NULL;
@@ -84,8 +87,8 @@ static char *getUserDirByUID(void)
             } /* if */
         } /* if */
     } /* if */
-    
     return retval;
+#endif
 } /* getUserDirByUID */
 
 
