@@ -25,6 +25,10 @@
 
 #include "physfs_internal.h"
 
+#ifdef PHYSFS_PLATFORM_3DS
+#include <3ds/synchronization.h>
+#include <3ds/thread.h>
+#endif
 
 static PHYSFS_ErrorCode errcodeFromErrnoError(const int err)
 {
@@ -87,6 +91,9 @@ static char *getUserDirByUID(void)
 
 char *__PHYSFS_platformCalcUserDir(void)
 {
+#ifdef PHYSFS_PLATFORM_3DS
+    return __PHYSFS_3DSCalcUserDir();
+#endif
     char *retval = NULL;
     char *envr = getenv("HOME");
 
@@ -330,27 +337,43 @@ int __PHYSFS_platformStat(const char *fname, PHYSFS_Stat *st, const int follow)
     st->createtime = statbuf.st_ctime;
     st->accesstime = statbuf.st_atime;
 
-    st->readonly = (access(fname, W_OK) == -1);
+#ifdef PHYSFS_PLATFORM_3DS
+    /* shortcut */
+    st->readonly = !(statbuf.st_mode & S_IWRITE);
+#else
+     st->readonly = (access(fname, W_OK) == -1);
+#endif
     return 1;
 } /* __PHYSFS_platformStat */
 
 
+#ifdef PHYSFS_PLATFORM_3DS
+#else
 typedef struct
 {
     pthread_mutex_t mutex;
     pthread_t owner;
     PHYSFS_uint32 count;
 } PthreadMutex;
-
+#endif
 
 void *__PHYSFS_platformGetThreadID(void)
 {
+#ifdef PHYSFS_PLATFORM_3DS
+    return (void*)threadGetCurrent();
+#else
     return ( (void *) ((size_t) pthread_self()) );
+#endif
 } /* __PHYSFS_platformGetThreadID */
 
 
 void *__PHYSFS_platformCreateMutex(void)
 {
+#ifdef PHYSFS_PLATFORM_3DS
+    RecursiveLock *m = allocator.Malloc(sizeof(RecursiveLock));
+    BAIL_IF(!m, PHYSFS_ERR_OUT_OF_MEMORY, NULL);
+    RecursiveLock_Init(m);
+#else
     int rc;
     PthreadMutex *m = (PthreadMutex *) allocator.Malloc(sizeof (PthreadMutex));
     BAIL_IF(!m, PHYSFS_ERR_OUT_OF_MEMORY, NULL);
@@ -363,12 +386,16 @@ void *__PHYSFS_platformCreateMutex(void)
 
     m->count = 0;
     m->owner = (pthread_t) 0xDEADBEEF;
+#endif
     return ((void *) m);
 } /* __PHYSFS_platformCreateMutex */
 
 
 void __PHYSFS_platformDestroyMutex(void *mutex)
 {
+#ifdef PHYSFS_PLATFORM_3DS
+    allocator.Free((RecursiveLock *)mutex);
+#else
     PthreadMutex *m = (PthreadMutex *) mutex;
 
     /* Destroying a locked mutex is a bug, but we'll try to be helpful. */
@@ -377,11 +404,15 @@ void __PHYSFS_platformDestroyMutex(void *mutex)
 
     pthread_mutex_destroy(&m->mutex);
     allocator.Free(m);
+#endif
 } /* __PHYSFS_platformDestroyMutex */
 
 
 int __PHYSFS_platformGrabMutex(void *mutex)
 {
+#ifdef PHYSFS_PLATFORM_3DS
+    RecursiveLock_Lock((RecursiveLock *)mutex);
+#else
     PthreadMutex *m = (PthreadMutex *) mutex;
     pthread_t tid = pthread_self();
     if (m->owner != tid)
@@ -392,12 +423,16 @@ int __PHYSFS_platformGrabMutex(void *mutex)
     } /* if */
 
     m->count++;
+#endif
     return 1;
 } /* __PHYSFS_platformGrabMutex */
 
 
 void __PHYSFS_platformReleaseMutex(void *mutex)
 {
+#ifdef PHYSFS_PLATFORM_3DS
+    RecursiveLock_Unlock((RecursiveLock *)mutex);
+#else
     PthreadMutex *m = (PthreadMutex *) mutex;
     assert(m->owner == pthread_self());  /* catch programming errors. */
     assert(m->count > 0);  /* catch programming errors. */
@@ -409,6 +444,7 @@ void __PHYSFS_platformReleaseMutex(void *mutex)
             pthread_mutex_unlock(&m->mutex);
         } /* if */
     } /* if */
+#endif
 } /* __PHYSFS_platformReleaseMutex */
 
 #endif  /* PHYSFS_PLATFORM_POSIX */
