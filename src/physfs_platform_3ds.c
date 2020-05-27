@@ -37,7 +37,7 @@ void __PHYSFS_platformDetectAvailableCDs(PHYSFS_StringCallback cb, void *data)
 	/* no-op */
 }
 
-char *__PHYSFS_switchCalcUserDir(void)
+char *__PHYSFS_3DSCalcUserDir(void)
 {
 	/* Use the jail directory (hopefully) found before. */
 	return __PHYSFS_strdup(PHYSFS_getBaseDir());
@@ -75,7 +75,7 @@ char *__PHYSFS_platformCalcBaseDir(const char *argv0)
 	}
 
 	if (!retval)
-		/* Last resort: use `/switch` directory. */
+		/* Last resort: use `/3ds` directory. */
 		retval = __PHYSFS_strdup("/3ds/");
 
 	return retval;
