@@ -67,7 +67,7 @@ char *__PHYSFS_platformCalcBaseDir(const char *argv0)
 	}
 	else
 	{
-		/* nx-hbmenu should give us the full path of the application, this may
+		/*  hbmenu should give us the full path of the application, this may
 		 *  reside in a subfolder. Higher level code will strip away the name
 		 *  and extension.
 		 */
